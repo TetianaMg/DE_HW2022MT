@@ -1,0 +1,109 @@
+/*
+ Завдання на SQL до лекції 02.
+ */
+
+
+/*
+1.
+Вивести кількість фільмів в кожній категорії.
+Результат відсортувати за спаданням.
+*/
+select cn, count(ff)
+from (
+select c.name cn, f.film_id ff
+from film_category fc
+inner join film f on fc.film_id = f.film_id
+inner join category c on fc.category_id = c.category_id 
+) tt
+group by cn
+order by 2 desc
+
+
+
+/*
+2.
+Вивести 10 акторів, чиї фільми брали на прокат найбільше.
+Результат відсортувати за спаданням.
+*/
+select a.first_name first_name, a.last_name last_name, count(*)
+from actor a 
+inner join film_actor fa on a.actor_id = fa.actor_id 
+inner join film f on fa.film_id = f.film_id
+group by first_name, last_name
+order by count(*) desc 
+limit 10
+
+
+
+/*
+3.
+Вивести категорія фільмів, на яку було витрачено найбільше грошей
+в прокаті
+*/
+select c."name", sum(p.amount)
+from payment p 
+inner join rental r on p.customer_id = r.customer_id 
+inner join inventory i on r.inventory_id = i.inventory_id
+inner join film_category fc on i.film_id = fc.film_id 
+inner join category c on fc.category_id = c.category_id 
+group by c."name"
+order by sum(p.amount) desc
+limit 1
+
+
+
+/*
+4.
+Вивести назви фільмів, яких не має в inventory.
+Запит має бути без оператора IN
+*/
+SELECT f2.title 
+FROM 
+(
+SELECT f.film_id 
+FROM film f 
+EXCEPT
+SELECT f.film_id 
+FROM film f 
+INNER JOIN inventory i ON i.film_id = f.film_id 
+) tmp
+INNER JOIN film f2 ON tmp.film_id = f2.film_id 
+
+/*
+5.
+Вивести топ 3 актори, які найбільше зʼявлялись в категорії фільмів “Children”.
+*/
+select first_name, last_name, cnt, dense_rnk
+from 
+(select a.first_name, a.last_name, count(fc.film_id) cnt, dense_rank () over (order by count(fc.film_id) desc) dense_rnk
+from actor a 
+inner join film_actor fa on a.actor_id = fa.actor_id 
+inner join film_category fc on fa.film_id = fc.film_id 
+inner join category c on fc.category_id = c.category_id 
+where c."name" = 'Children'
+group by a.first_name, a.last_name 
+order by 3 desc) tt
+where dense_rnk < 4
+
+
+/*
+6.
+Вивести міста з кількістю активних та неактивних клієнтів
+(в активних customer.active = 1).
+Результат відсортувати за кількістю неактивних клієнтів за спаданням.
+*/
+select concat(tt.c, pp.c) city, unactive, active
+from
+(select distinct c2.city c, count(*) over (partition by c2.city) as unactive
+from customer c 
+inner join address a on c.address_id = a.address_id 
+inner join city c2 on a.city_id = c2.city_id 
+where c.active = 0) tt
+FULL OUTER JOIN 
+(select distinct c2.city c,count(*) over (partition by c2.city) as active
+from customer c 
+inner join address a on c.address_id = a.address_id 
+inner join city c2 on a.city_id = c2.city_id 
+where c.active = 1) pp
+on tt.c = pp.c
+order by unactive
