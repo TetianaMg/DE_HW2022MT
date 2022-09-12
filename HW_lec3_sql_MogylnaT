@@ -2,7 +2,6 @@
  Завдання на SQL до лекції 02.
  */
 
-
 /*
 1.
 Вивести кількість фільмів в кожній категорії.
@@ -17,7 +16,6 @@ inner join category c on fc.category_id = c.category_id
 ) tt
 group by cn
 order by 2 desc
-
 
 
 /*
